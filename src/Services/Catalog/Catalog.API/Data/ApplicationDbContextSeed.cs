@@ -1,4 +1,6 @@
-﻿using Newtonsoft.Json;
+﻿using Catalog.Domain;
+using Microsoft.EntityFrameworkCore;
+using Newtonsoft.Json;
 
 namespace Catalog.API.Data
 {
@@ -32,7 +34,14 @@ namespace Catalog.API.Data
             {
                 var plates = ReadApplicationRoleFromJson(env.ContentRootPath, logger);
 
-                await context.Plates.AddRangeAsync(plates);
+                foreach (var plate in plates)
+                {
+                    var exists = await context.Plates.FindAsync(plate.Id);
+                    if (exists == null)
+                    {
+                        context.Plates.Add(plate);
+                    }
+                }
                 await context.SaveChangesAsync();
             }
             catch (Exception ex)

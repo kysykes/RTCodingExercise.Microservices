@@ -1,4 +1,10 @@
-﻿using MassTransit;
+﻿using Catalog.Application.Interfaces;
+using Catalog.Application.Mapping;
+using Catalog.Application.Services;
+using Catalog.Infrastructure;
+using Catalog.Infrastructure.Interfaces;
+using Catalog.Infrastructure.Repos;
+using MassTransit;
 using Microsoft.OpenApi.Models;
 using RabbitMQ.Client;
 
@@ -18,6 +24,15 @@ namespace Catalog.API
         {
             // Add framework services.
             services.AddDbContext<ApplicationDbContext>(options =>
+                    options.UseSqlServer(Configuration["ConnectionString"],
+                    sqlServerOptionsAction: sqlOptions =>
+                    {
+                        sqlOptions.MigrationsAssembly(typeof(Startup).GetTypeInfo().Assembly.GetName().Name);
+                        //Configuring Connection Resiliency: https://docs.microsoft.com/en-us/ef/core/miscellaneous/connection-resiliency 
+                        sqlOptions.EnableRetryOnFailure(maxRetryCount: 15, maxRetryDelay: TimeSpan.FromSeconds(30), errorNumbersToAdd: null);
+                    }));
+
+            services.AddDbContext<CatalogDbContext>(options =>
                     options.UseSqlServer(Configuration["ConnectionString"],
                     sqlServerOptionsAction: sqlOptions =>
                     {
@@ -76,6 +91,10 @@ namespace Catalog.API
             });
 
             services.AddMassTransitHostedService();
+            services.AddAutoMapper(typeof(PlateProfile).Assembly);
+            services.AddHttpClient();
+            services.AddScoped<IPlateService, PlateService>();
+            services.AddScoped<IPlateRepo, PlateRepo>();
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
@@ -98,10 +117,10 @@ namespace Catalog.API
 
             app.UseStaticFiles();
 
-            // Make work identity server redirections in Edge and lastest versions of browers. WARN: Not valid in a production environment.
             app.Use(async (context, next) =>
             {
-                context.Response.Headers.Add("Content-Security-Policy", "script-src 'unsafe-inline'");
+                context.Response.Headers.Add("Content-Security-Policy",
+                    "script-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com https://localhost:7160;");
                 await next();
             });
 

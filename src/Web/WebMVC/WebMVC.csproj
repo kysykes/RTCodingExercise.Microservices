@@ -2,6 +2,7 @@
 
 	<PropertyGroup>
 		<TargetFramework>net6.0</TargetFramework>
+		<RazorCssIncludeAllContent>true</RazorCssIncludeAllContent>
 		<Nullable>enable</Nullable>
 		<ImplicitUsings>enable</ImplicitUsings>
 		<UserSecretsId>8c12f3d3-fd95-462a-9cb2-f8fd09bc90fb</UserSecretsId>
@@ -36,6 +37,7 @@
 	</ItemGroup>
 
 	<ItemGroup>
+	  <ProjectReference Include="..\..\Services\Catalog\Catalog.Application\Catalog.Application.csproj" />
 	  <ProjectReference Include="..\..\Services\Catalog\Catalog.Domain\Catalog.Domain.csproj" />
 	</ItemGroup>
 

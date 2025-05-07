@@ -1,0 +1,52 @@
+﻿@model IEnumerable<Catalog.WebMVC.Models.PlateViewModel>
+
+<h1>Plate List</h1>
+
+<!-- Form to Add New Plate -->
+<h2>Add New Plate</h2>
+<form id="addPlateForm" method="post" asp-action="AddPlate">
+    <div class="form-group">
+        <label for="registration">Registration</label>
+        <input type="text" id="registration" name="registration" class="form-control" required />
+    </div>
+    <div class="form-group">
+        <label for="purchasePrice">Purchase Price</label>
+        <input type="number" id="purchasePrice" name="purchasePrice" class="form-control" required />
+    </div>
+    <div class="form-group">
+        <label for="salePrice">Sale Price</label>
+        <input type="number" id="salePrice" name="salePrice" class="form-control" required />
+    </div>
+    <div class="form-group">
+        <label for="letters">Letters</label>
+        <input type="text" id="letters" name="letters" class="form-control" required />
+    </div>
+    <div class="form-group">
+        <label for="numbers">Numbers</label>
+        <input type="number" id="numbers" name="numbers" class="form-control" required />
+    </div>
+    <button type="submit" class="btn btn-primary">Add Plate</button>
+</form>
+
+<hr>
+
+<h3>Current Plates</h3>
+<table class="table">
+    <thead>
+        <tr>
+            <th>Registration</th>
+            <th>Purchase Price</th>
+            <th>Sale Price</th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (var plate in Model)
+        {
+            <tr>
+                <td>@plate.Registration</td>
+                <td>@plate.PurchasePrice</td>
+                <td>@plate.SalePrice</td>
+            </tr>
+        }
+    </tbody>
+</table>
