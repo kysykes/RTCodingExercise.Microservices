@@ -1,52 +1,197 @@
 ﻿@model IEnumerable<Catalog.WebMVC.Models.PlateViewModel>
 
-<h1>Plate List</h1>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Plate List</title>
+    <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
+</head>
+<body>
+    <div class="container">
+        <h1>Plate List</h1>
 
-<!-- Form to Add New Plate -->
-<h2>Add New Plate</h2>
-<form id="addPlateForm" method="post" asp-action="AddPlate">
-    <div class="form-group">
-        <label for="registration">Registration</label>
-        <input type="text" id="registration" name="registration" class="form-control" required />
-    </div>
-    <div class="form-group">
-        <label for="purchasePrice">Purchase Price</label>
-        <input type="number" id="purchasePrice" name="purchasePrice" class="form-control" required />
-    </div>
-    <div class="form-group">
-        <label for="salePrice">Sale Price</label>
-        <input type="number" id="salePrice" name="salePrice" class="form-control" required />
-    </div>
-    <div class="form-group">
-        <label for="letters">Letters</label>
-        <input type="text" id="letters" name="letters" class="form-control" required />
-    </div>
-    <div class="form-group">
-        <label for="numbers">Numbers</label>
-        <input type="number" id="numbers" name="numbers" class="form-control" required />
-    </div>
-    <button type="submit" class="btn btn-primary">Add Plate</button>
-</form>
+        <button class="btn btn-success" data-bs-toggle="modal" data-bs-target="#addPlateModal">
+            Add New Plate
+        </button>
 
-<hr>
+        <!-- Buttons for sorting by price -->
+        <button class="btn btn-primary" onclick="getPlates('asc')">Sort by Price Ascending</button>
+        <button class="btn btn-primary" onclick="getPlates('desc')">Sort by Price Descending</button>
 
-<h3>Current Plates</h3>
-<table class="table">
-    <thead>
-        <tr>
-            <th>Registration</th>
-            <th>Purchase Price</th>
-            <th>Sale Price</th>
-        </tr>
-    </thead>
-    <tbody>
-        @foreach (var plate in Model)
-        {
-            <tr>
-                <td>@plate.Registration</td>
-                <td>@plate.PurchasePrice</td>
-                <td>@plate.SalePrice</td>
-            </tr>
+        <!-- Table to display plates -->
+        <table class="table">
+            <thead>
+                <tr>
+                    <th>Registration</th>
+                    <th>Purchase Price</th>
+                    <th>Sale Price</th>
+                </tr>
+            </thead>
+            <tbody id="platesTableBody">
+                <!-- Plates will be rendered here dynamically -->
+                @foreach (var plate in Model)
+                {
+                    <tr>
+                        <td>@plate.Registration</td>
+                        <td>@plate.PurchasePrice</td>
+                        <td>@plate.SalePrice</td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+        <button id="prevButton" class="btn btn-secondary" onclick="goToPreviousPage()">Previous</button>
+        <button id="nextButton" class="btn btn-secondary" onclick="goToNextPage()">Next</button>
+    </div>
+    <!-- Modal for adding a new plate -->
+    <div class="modal fade" id="addPlateModal" tabindex="-1" role="dialog" aria-labelledby="addPlateModalLabel" aria-hidden="true">
+        <div class="modal-dialog" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="addPlateModalLabel">Add New Plate</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+
+                </div>
+                <div class="modal-body">
+                    <form id="addPlateForm">
+                        <div class="form-group">
+                            <label for="registration">Registration</label>
+                            <input type="text" class="form-control" id="registration" placeholder="Enter Registration" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="purchasePrice">Purchase Price</label>
+                            <input type="number" class="form-control" id="purchasePrice" placeholder="Enter Purchase Price" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="salePrice">Sale Price</label>
+                            <input type="number" class="form-control" id="salePrice" placeholder="Enter Sale Price" required>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                    <button type="button" class="btn btn-primary" data-bs-dismiss="modal" id="savePlateButton">Save Plate</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+
+    <script>
+        let currentPage = 1;
+        const pageSize = 20;
+        let sortOrder = 'asc';
+        let totalCount = 0;
+
+        async function getPlates(order = 'asc') {
+            sortOrder = order;
+
+            try {
+                const response = await fetch(`/Home/Plates?sortOrder=${sortOrder}&page=${currentPage}&pageSize=${pageSize}`, {
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest'
+                    }
+                });
+
+                if (!response.ok) {
+                    throw new Error(`Failed to fetch plates: ${response.statusText}`);
+                }
+
+                const data = await response.json();
+                const plates = data.items;
+                totalCount = data.totalCount;
+
+                const tableBody = document.getElementById('platesTableBody');
+                tableBody.innerHTML = '';
+
+                plates.forEach(plate => {
+                    const row = document.createElement('tr');
+                    row.innerHTML = `
+                        <td>${plate.registration}</td>
+                        <td>${plate.purchasePrice}</td>
+                        <td>${plate.salePrice}</td>
+                    `;
+                    tableBody.appendChild(row);
+                });
+
+                updatePagination();
+            } catch (error) {
+                console.error('Error fetching plates:', error);
+            }
         }
-    </tbody>
-</table>
+
+        function updatePagination() {
+            currentPage = page;
+            const prevButton = document.getElementById('prevButton');
+            const nextButton = document.getElementById('nextButton');
+
+            const totalPages = Math.ceil(totalCount / pageSize);
+
+            prevButton.disabled = currentPage <= 1;
+            nextButton.disabled = currentPage >= totalPages;
+        }
+
+        document.getElementById("savePlateButton").addEventListener("click", async function() {
+            const registration = document.getElementById("registration").value;
+            const purchasePrice = document.getElementById("purchasePrice").value;
+            const salePrice = document.getElementById("salePrice").value;
+
+            if (!registration || !purchasePrice || !salePrice) {
+                alert("All fields are required!");
+                return;
+            }
+
+            const newPlate = {
+                registration: registration,
+                purchasePrice: parseFloat(purchasePrice),
+                salePrice: parseFloat(salePrice)
+            };
+
+            try {
+                const response = await fetch('/Home/AddPlate', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(newPlate)
+                });
+
+                if (!response.ok) {
+                    throw new Error("Failed to add plate");
+                }
+
+                const modalElement = document.getElementById('addPlateModal');
+                const modalInstance = new bootstrap.Modal(modalElement);
+                modalInstance.hide();
+
+                document.getElementById("addPlateForm").reset();
+                getPlates(sortOrder);
+
+            } catch (error) {
+                console.error('Error adding plate:', error);
+                alert('Failed to add plate');
+            }
+        });
+
+        function goToPreviousPage() {
+            if (currentPage > 1) {
+                currentPage--;
+                getPlates(sortOrder); 
+            }
+        }
+
+        function goToNextPage() {
+            currentPage++;
+            getPlates(sortOrder); 
+        }
+
+         document.addEventListener('DOMContentLoaded', () => getPlates());
+    </script>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+
+
+</body>
+</html>

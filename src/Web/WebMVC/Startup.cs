@@ -1,5 +1,6 @@
 ﻿using MassTransit;
 using RabbitMQ.Client;
+using RTCodingExercise.Microservices.Controllers;
 
 namespace RTCodingExercise.WebMVC
 {
@@ -45,7 +46,10 @@ namespace RTCodingExercise.WebMVC
             });
 
             services.AddMassTransitHostedService();
-            services.AddHttpClient();
+            services.AddHttpClient("PlateApi", client =>
+            {
+                client.BaseAddress = new Uri("http://172.18.0.4:80/");
+            });
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.

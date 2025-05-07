@@ -1,8 +1,10 @@
 ﻿using System.Diagnostics;
+using System.Net.Http;
 using Catalog.Application.Dtos;
 using Catalog.WebMVC.Models;
 using Newtonsoft.Json;
 using RTCodingExercise.Microservices.Models;
+using WebMVC;
 
 namespace RTCodingExercise.Microservices.Controllers
 {
@@ -10,12 +12,11 @@ namespace RTCodingExercise.Microservices.Controllers
     {
         private readonly ILogger<HomeController> _logger;
         private readonly HttpClient _httpClient;
-        private readonly string _apiBaseUrl = "http://172.18.0.4:80/api/plate";
 
-        public HomeController(ILogger<HomeController> logger, HttpClient httpClient)
+        public HomeController(ILogger<HomeController> logger, IHttpClientFactory httpClientFactory)
         {
             _logger = logger;
-            _httpClient = httpClient;
+            _httpClient = httpClientFactory.CreateClient("PlateApi");
         }
 
         public async Task<IActionResult> Index()
@@ -34,25 +35,37 @@ namespace RTCodingExercise.Microservices.Controllers
             return View(new ErrorViewModel { RequestId = Activity.Current?.Id ?? HttpContext.TraceIdentifier });
         }
 
-        public async Task<IActionResult> Plates()
+        public async Task<IActionResult> Plates(string sortOrder = "asc", int page = 1, int pageSize = 20)
         {
             try
             {
-                var response = await _httpClient.GetStringAsync(_apiBaseUrl);
+                var response = await _httpClient.GetStringAsync($"api/plate?sortOrder={sortOrder}&page={page}&pageSize={pageSize}");
 
-                var plateDtos = JsonConvert.DeserializeObject<List<PlateDto>>(response);
+                var result = JsonConvert.DeserializeObject<PaginatedPlatesResponse>(response);
 
-                if (plateDtos == null || !plateDtos.Any())
+                if (result?.Items == null || !result.Items.Any())
                 {
                     _logger.LogWarning("No plates found in the API response.");
                 }
 
-                var plateViewModels = plateDtos.Select(plateDto => new PlateViewModel
+                var plateViewModels = result?.Items.Select(plateDto => new PlateViewModel
                 {
                     Registration = plateDto.Registration,
                     PurchasePrice = plateDto.PurchasePrice,
                     SalePrice = plateDto.SalePrice
                 }).ToList();
+
+                // Handle AJAX requests
+                if (Request.Headers["X-Requested-With"] == "XMLHttpRequest")
+                {
+                    return Json(new
+                    {
+                        items = plateViewModels,
+                        page = result.Page,
+                        pageSize = result.PageSize,
+                        totalCount = result.TotalCount
+                    });
+                }
 
                 return View(plateViewModels);
             }
@@ -62,6 +75,7 @@ namespace RTCodingExercise.Microservices.Controllers
                 return View("Error");
             }
         }
+
         [HttpGet]
         public IActionResult AddPlate()
         {
@@ -69,20 +83,21 @@ namespace RTCodingExercise.Microservices.Controllers
         }
 
         [HttpPost]
-        public async Task<IActionResult> AddPlate(PlateViewModel plate)
+        public async Task<IActionResult> AddPlate([FromBody] PlateViewModel plate)
         {
             if (!ModelState.IsValid)
-                return View(plate);
+            {
+                return BadRequest(ModelState);
+            }
 
-            var response = await _httpClient.PostAsJsonAsync(_apiBaseUrl, plate);
+            var response = await _httpClient.PostAsJsonAsync("api/plate", plate);
 
             if (response.IsSuccessStatusCode)
             {
-                return RedirectToAction("Plates");
+                return Ok(new { message = "Plate added successfully" });
             }
 
-            ModelState.AddModelError("", "Failed to add plate.");
-            return View(plate);
+            return StatusCode((int)response.StatusCode, "Failed to add plate.");
         }
     }
 }

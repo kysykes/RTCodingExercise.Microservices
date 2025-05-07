@@ -77,7 +77,7 @@ namespace Catalog.UnitTests
         }
 
         [Fact]
-        public async Task GetAllPlatesAsync_ThrowsException_PropagatesToCaller()
+        public async Task GetAllPlates_ThrowsException_PropagatesToCaller()
         {
             // Arrange
             _plateRepoMock.Setup(repo => repo.GetAll())
@@ -89,7 +89,7 @@ namespace Catalog.UnitTests
         }
 
         [Fact]
-        public async Task GetAllPlatesAsync_WhenNoPlatesExist_ReturnsEmptyList()
+        public async Task GetAllPlates_WhenNoPlatesExist_ReturnsEmptyList()
         {
             // Arrange
             _plateRepoMock.Setup(repo => repo.GetAll())
@@ -102,5 +102,6 @@ namespace Catalog.UnitTests
             Assert.NotNull(result); // Should never return null
             Assert.Empty(result);   // List should be empty
         }
+
     }
 }
